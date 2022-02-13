@@ -29,6 +29,7 @@
 #include "touchpad-control.h"
 #include "setup-gnome.h"
 #include "setup-kde.h"
+#include "setup-openbox.h"
 
 using std::cout;
 using std::cerr;
@@ -105,6 +106,9 @@ int main() {
     }
     else if (strstr(xdg_current_desktop, "KDE")) {
         setup_kde(lockfile);
+    }
+    else if (strstr(xdg_current_desktop, "openbox")) {
+        setup_openbox(lockfile);
     }
     else {
         cout << "Your desktop environment is not supported." << endl;
