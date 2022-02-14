@@ -42,6 +42,7 @@ static void gracefull_exit(int signum = 0) {
     
     clean_gnome();
     clean_kde();
+    clean_openbox();
     
     if (signum < 0) {
         result = EXIT_FAILURE;
