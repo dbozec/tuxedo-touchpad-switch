@@ -84,18 +84,18 @@ static void kded_modules_touchpad_handler(GDBusProxy *proxy, __attribute__((unus
 static void solid_power_management_handler(__attribute__((unused)) GDBusProxy *proxy, __attribute__((unused)) char *sender_name, char *signal_name, __attribute__((unused)) GVariant *parameters, __attribute__((unused)) gpointer user_data) {
     if (!strcmp("aboutToSuspend", signal_name)) {
         if (set_touchpad_state(1)) {
-            cerr << "kded_modules_touchpad_handler(...): set_touchpad_state(...) failed." << endl;
+            cerr << "solid_power_management_handler(...): set_touchpad_state(...) failed." << endl;
         }
         if (flock(lockfile, LOCK_UN)) {
-            cerr << "kded_modules_touchpad_handler(...): flock(...) failed." << endl;
+            cerr << "solid_power_management_handler(...): flock(...) failed." << endl;
         }
     }
     else if (!strcmp("resumingFromSuspend", signal_name)) {
         if (flock(lockfile, LOCK_EX)) {
-            cerr << "kded_modules_touchpad_handler(...): flock(...) failed." << endl;
+            cerr << "solid_power_management_handler(...): flock(...) failed." << endl;
         }
         if (set_touchpad_state(isEnabledSave)) {
-            cerr << "kded_modules_touchpad_handler(...): set_touchpad_state(...) failed." << endl;
+            cerr << "solid_power_management_handler(...): set_touchpad_state(...) failed." << endl;
         }
     }
 }
@@ -109,13 +109,13 @@ static int kded_modules_touchpad_init(GDBusProxy *proxy) {
         isEnabledSave = g_variant_get_boolean(isEnabled);
         if (isEnabledSave) {
             if (set_touchpad_state(1)) {
-                cerr << "kded_modules_touchpad_handler(...): set_touchpad_state(...) failed." << endl;
+                cerr << "kded_modules_touchpad_init(...): set_touchpad_state(...) failed." << endl;
                 return EXIT_FAILURE;
             }
         }
         else {
             if (set_touchpad_state(0)) {
-                cerr << "kded_modules_touchpad_handler(...): set_touchpad_state(...) failed." << endl;
+                cerr << "kded_modules_touchpad_init(...): set_touchpad_state(...) failed." << endl;
                 return EXIT_FAILURE;
             }
         }
@@ -124,7 +124,7 @@ static int kded_modules_touchpad_init(GDBusProxy *proxy) {
         g_variant_unref(isEnabledParam);
     }
     else {
-        cerr << "kded_modules_touchpad_handler(...): g_dbus_proxy_call_sync(...) failed." << endl;
+        cerr << "kded_modules_touchpad_init(...): g_dbus_proxy_call_sync(...) failed." << endl;
         return EXIT_FAILURE;
     }
 
@@ -138,11 +138,11 @@ static int kded_modules_touchpad_init(GDBusProxy *proxy) {
         // isMousePluggedInPrev just got init so it holds the current value
         if (!isMousePluggedInPrev) {
             if (set_touchpad_state(1)) {
-                cerr << "kded_modules_touchpad_handler(...): set_touchpad_state(...) failed." << endl;
+                cerr << "kded_modules_touchpad_init(...): set_touchpad_state(...) failed." << endl;
                 return EXIT_FAILURE;
             }
             if (flock(lockfile, LOCK_UN)) {
-                cerr << "kded_modules_touchpad_handler(...): flock(...) failed." << endl;
+                cerr << "kded_modules_touchpad_init(...): flock(...) failed." << endl;
                 return EXIT_FAILURE;
             }
         }
@@ -151,7 +151,7 @@ static int kded_modules_touchpad_init(GDBusProxy *proxy) {
         g_variant_unref(isMousePluggedInParam);
     }
     else {
-        cerr << "kded_modules_touchpad_handler(...): g_dbus_proxy_call_sync(...) failed." << endl;
+        cerr << "kded_modules_touchpad_init(...): g_dbus_proxy_call_sync(...) failed." << endl;
         return EXIT_FAILURE;
     }
 
@@ -183,9 +183,9 @@ int setup_kde(int lockfile_arg) {
                                                               NULL, NULL);
         // call a random method to check if object exists
         isMousePluggedInParam = g_dbus_proxy_call_sync(kded_modules_touchpad,
-                                                                 "isMousePluggedIn",
-                                                                 NULL, G_DBUS_CALL_FLAGS_NONE,
-                                                                 G_MAXINT, NULL, NULL);
+                                                       "isMousePluggedIn",
+                                                       NULL, G_DBUS_CALL_FLAGS_NONE,
+                                                       G_MAXINT, NULL, NULL);
         if (isMousePluggedInParam == NULL) {
             g_object_unref(kded_modules_touchpad);
             g_variant_unref(isMousePluggedInParam);
@@ -197,9 +197,9 @@ int setup_kde(int lockfile_arg) {
                                                                   NULL, NULL);
             // call a random method to check if object exists
             isMousePluggedInParam = g_dbus_proxy_call_sync(kded_modules_touchpad,
-                                                                    "isMousePluggedIn",
-                                                                    NULL, G_DBUS_CALL_FLAGS_NONE,
-                                                                    G_MAXINT, NULL, NULL);
+                                                           "isMousePluggedIn",
+                                                           NULL, G_DBUS_CALL_FLAGS_NONE,
+                                                           G_MAXINT, NULL, NULL);
             if (isMousePluggedInParam == NULL) {
                 g_clear_object(&kded_modules_touchpad);
                 g_variant_unref(isMousePluggedInParam);
@@ -218,11 +218,11 @@ int setup_kde(int lockfile_arg) {
     
     // sync on wakeup
     solid_power_management = g_dbus_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION,
-                                                                       G_DBUS_PROXY_FLAGS_NONE, NULL,
-                                                                       "org.kde.Solid.PowerManagement",
-                                                                       "/org/kde/Solid/PowerManagement/Actions/SuspendSession",
-                                                                       "org.kde.Solid.PowerManagement.Actions.SuspendSession",
-                                                                       NULL, NULL);
+                                                           G_DBUS_PROXY_FLAGS_NONE, NULL,
+                                                           "org.kde.Solid.PowerManagement",
+                                                           "/org/kde/Solid/PowerManagement/Actions/SuspendSession",
+                                                           "org.kde.Solid.PowerManagement.Actions.SuspendSession",
+                                                           NULL, NULL);
     if (solid_power_management == NULL) {
         cerr << "setup_kde(...): g_dbus_proxy_new_for_bus_sync(...) failed." << endl;
         g_clear_object(&kded_modules_touchpad);
