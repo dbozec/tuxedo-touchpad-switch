@@ -1,3 +1,11 @@
+tuxedo-touchpad-switch (1.0.9) jammy; urgency=medium
+
+  [ Werner Sembach ]
+  * Fix error messages and code styling
+  * Disable logic during suspend to avoid race conditions
+
+ -- Tuxedo BOT <tux@tuxedocomputers.com>  Thu, 05 Sep 2024 11:02:25 +0200
+
 tuxedo-touchpad-switch (1.0.8) jammy; urgency=medium
 
   [ Werner Sembach ]
