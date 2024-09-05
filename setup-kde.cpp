@@ -31,58 +31,63 @@ using std::endl;
 int lockfile;
 gboolean isMousePluggedInPrev;
 gboolean isEnabledSave;
+gboolean isSuspending;
 GDBusProxy *kded_modules_touchpad = NULL;
 GDBusProxy *solid_power_management = NULL;
 
 static void kded_modules_touchpad_handler(GDBusProxy *proxy, __attribute__((unused)) char *sender_name, char *signal_name, GVariant *parameters, __attribute__((unused)) gpointer user_data) {
-    if (!strcmp("enabledChanged", signal_name) && g_variant_is_of_type(parameters, (const GVariantType *)"(b)") && g_variant_n_children(parameters)) {
-        GVariant *enabledChanged = g_variant_get_child_value(parameters, 0);
-        
-        isEnabledSave = g_variant_get_boolean(enabledChanged);
-        if (isEnabledSave) {
-            if (set_touchpad_state(1)) {
-                cerr << "kded_modules_touchpad_handler(...): set_touchpad_state(...) failed." << endl;
-            }
-        }
-        else {
-            if (set_touchpad_state(0)) {
-                cerr << "kded_modules_touchpad_handler(...): set_touchpad_state(...) failed." << endl;
-            }
-        }
-        g_variant_unref(enabledChanged);
-    }
-    else if (!strcmp("mousePluggedInChanged", signal_name) && g_variant_is_of_type(parameters, (const GVariantType *)"(b)") && g_variant_n_children(parameters)) {
-        GVariant *isMousePluggedInParam = g_dbus_proxy_call_sync(proxy, "isMousePluggedIn", NULL, G_DBUS_CALL_FLAGS_NONE, G_MAXINT, NULL, NULL);
-        if (isMousePluggedInParam != NULL && g_variant_is_of_type(isMousePluggedInParam, (const GVariantType *)"(b)") && g_variant_n_children(isMousePluggedInParam)) {
-            GVariant *isMousePluggedIn = g_variant_get_child_value(isMousePluggedInParam, 0);
-            if (isMousePluggedInPrev && !g_variant_get_boolean(isMousePluggedIn)) {
+    if (!isSuspending) {
+        if (!strcmp("enabledChanged", signal_name) && g_variant_is_of_type(parameters, (const GVariantType *)"(b)") && g_variant_n_children(parameters)) {
+            GVariant *enabledChanged = g_variant_get_child_value(parameters, 0);
+
+            isEnabledSave = g_variant_get_boolean(enabledChanged);
+            if (isEnabledSave) {
                 if (set_touchpad_state(1)) {
                     cerr << "kded_modules_touchpad_handler(...): set_touchpad_state(...) failed." << endl;
                 }
-                if (flock(lockfile, LOCK_UN)) {
-                    cerr << "kded_modules_touchpad_handler(...): flock(...) failed." << endl;
-                }
             }
-            else if (!isMousePluggedInPrev && g_variant_get_boolean(isMousePluggedIn)) {
-                if (flock(lockfile, LOCK_EX)) {
-                    cerr << "kded_modules_touchpad_handler(...): flock(...) failed." << endl;
-                }
-                if (set_touchpad_state(isEnabledSave)) {
+            else {
+                if (set_touchpad_state(0)) {
                     cerr << "kded_modules_touchpad_handler(...): set_touchpad_state(...) failed." << endl;
                 }
             }
-            isMousePluggedInPrev = g_variant_get_boolean(isMousePluggedIn);
-            g_variant_unref(isMousePluggedIn);
-            g_variant_unref(isMousePluggedInParam);
+            g_variant_unref(enabledChanged);
         }
-        else {
-            cerr << "kded_modules_touchpad_handler(...): g_dbus_proxy_call_sync(...) failed." << endl;
+        else if (!strcmp("mousePluggedInChanged", signal_name) && g_variant_is_of_type(parameters, (const GVariantType *)"(b)") && g_variant_n_children(parameters)) {
+            GVariant *isMousePluggedInParam = g_dbus_proxy_call_sync(proxy, "isMousePluggedIn", NULL, G_DBUS_CALL_FLAGS_NONE, G_MAXINT, NULL, NULL);
+            if (isMousePluggedInParam != NULL && g_variant_is_of_type(isMousePluggedInParam, (const GVariantType *)"(b)") && g_variant_n_children(isMousePluggedInParam)) {
+                GVariant *isMousePluggedIn = g_variant_get_child_value(isMousePluggedInParam, 0);
+                if (isMousePluggedInPrev && !g_variant_get_boolean(isMousePluggedIn)) {
+                    if (set_touchpad_state(1)) {
+                        cerr << "kded_modules_touchpad_handler(...): set_touchpad_state(...) failed." << endl;
+                    }
+                    if (flock(lockfile, LOCK_UN)) {
+                        cerr << "kded_modules_touchpad_handler(...): flock(...) failed." << endl;
+                    }
+                }
+                else if (!isMousePluggedInPrev && g_variant_get_boolean(isMousePluggedIn)) {
+                    if (flock(lockfile, LOCK_EX)) {
+                        cerr << "kded_modules_touchpad_handler(...): flock(...) failed." << endl;
+                    }
+                    if (set_touchpad_state(isEnabledSave)) {
+                        cerr << "kded_modules_touchpad_handler(...): set_touchpad_state(...) failed." << endl;
+                    }
+                }
+                isMousePluggedInPrev = g_variant_get_boolean(isMousePluggedIn);
+                g_variant_unref(isMousePluggedIn);
+                g_variant_unref(isMousePluggedInParam);
+            }
+            else {
+                cerr << "kded_modules_touchpad_handler(...): g_dbus_proxy_call_sync(...) failed." << endl;
+            }
         }
     }
 }
 
 static void solid_power_management_handler(__attribute__((unused)) GDBusProxy *proxy, __attribute__((unused)) char *sender_name, char *signal_name, __attribute__((unused)) GVariant *parameters, __attribute__((unused)) gpointer user_data) {
     if (!strcmp("aboutToSuspend", signal_name)) {
+        isSuspending = true;
+
         if (set_touchpad_state(1)) {
             cerr << "solid_power_management_handler(...): set_touchpad_state(...) failed." << endl;
         }
@@ -91,6 +96,8 @@ static void solid_power_management_handler(__attribute__((unused)) GDBusProxy *p
         }
     }
     else if (!strcmp("resumingFromSuspend", signal_name)) {
+        isSuspending = false;
+
         if (flock(lockfile, LOCK_EX)) {
             cerr << "solid_power_management_handler(...): flock(...) failed." << endl;
         }
